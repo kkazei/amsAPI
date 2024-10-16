@@ -31,6 +31,7 @@
     require_once('./config/database.php');
     require_once( './services/login.php');
     require_once('./services/register.php');
+    require_once('./services/AdminMailer.php');
 
     
 
@@ -41,6 +42,7 @@
     
     $register = new RegisterUser($pdo);
     $login = new Login($pdo);
+    $mail = new Mail($pdo);
     
     
    
@@ -77,6 +79,12 @@
                     case 'register':
                         echo json_encode($register->registerUser($data));
                         break;
+                    case 'mail':
+                            echo json_encode($mail->sendEmail($data));
+                            break;
+                    case 'schedule':
+                            echo json_encode($mail->scheduledSend($data));
+                            break;
                     default:
                         echo "This is forbidden";
                         http_response_code(403);
