@@ -71,37 +71,12 @@
                         ]);
                     }
                     break;
-                    case 'createPost':
-                        echo json_encode($post->createPost($data));
-                        break;
-                        case 'adminPost':
-                            echo json_encode($post->createAdminPost($data));
-                            break;
                     case 'logout':
                         echo json_encode($login->logoutUser($data));
                         break;
                     case 'register':
                         echo json_encode($register->registerUser($data));
                         break;
-                    case 'editprofile':
-                        if (isset($request[1])) {
-                            echo json_encode($usermanage->updateUserData($request[1], $data));
-                        } else {
-                            echo json_encode($usermanage->sendErrorResponse("Invalid Response", 400));
-                        }
-                    case 'updatePost':
-                            if (isset($request[1])) {
-                                echo json_encode($post->updatePost($request[1], $data));
-                            } else {
-                                echo json_encode([
-                                    'status' => 400,
-                                    'message' => 'Invalid post ID'
-                                ]);
-                            }
-                        break;
-                        case 'addComment':
-                            echo json_encode($post->addComment($data));
-                            break;
                     default:
                         echo "This is forbidden";
                         http_response_code(403);
