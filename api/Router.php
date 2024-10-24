@@ -94,28 +94,7 @@
                         case 'GET':
                             $data = json_decode(file_get_contents("php://input"));
                             switch ($request[0]) {
-                                case 'posts':
-                                    if (count($request) > 1) {
-                                        echo json_encode($post->getPostData($request[1]));
-                                    } else {
-                                        echo json_encode($post->getPostData());
-                                    }
-                                    break;
-                                case 'getComment': // Change case label to 'getComment' for consistency
-                                    if (count($request) > 1) {
-                                        echo json_encode($post->getComments($request[1]));
-                                    } else {
-                                        echo "Comment ID not specified"; // Handle case where comment ID is missing
-                                        http_response_code(400); // Bad request status code
-                                    }
-                                    break;
-                                    case 'users':
-                                        if (count($request) > 1) {
-                                            echo json_encode($usermanage->getUsers($request[1])); // Corrected $user to $usermanage
-                                        } else {
-                                            echo json_encode($usermanage->getUsers()); // Corrected $user to $usermanage
-                                        }
-                                        break;
+                               
                                 default:
                                     echo "Method not available";
                                     http_response_code(404);
@@ -124,16 +103,7 @@
                             break;                        
             case 'DELETE':
                 switch ($request[0]) {
-                    case 'deletePost':
-                        if (isset($request[1])) {
-                            echo json_encode($post->deletePost([$request[1]]));
-                        } else {
-                            echo json_encode([
-                                'status' => 400,
-                                'message' => 'Invalid post ID'
-                            ]);
-                        }
-                        break;
+                  
             default:
                 echo "Method not available";
                 http_response_code(404);
