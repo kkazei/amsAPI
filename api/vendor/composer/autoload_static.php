@@ -21,6 +21,7 @@ class ComposerStaticInit20fad51902f91e7fd3039e016a6556b5
         ),
         'P' => 
         array (
+            'Psr\\Log\\' => 8,
             'PhpOption\\' => 10,
         ),
         'G' => 
@@ -50,6 +51,10 @@ class ComposerStaticInit20fad51902f91e7fd3039e016a6556b5
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
         ),
+        'Psr\\Log\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
+        ),
         'PhpOption\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
@@ -68,6 +73,16 @@ class ComposerStaticInit20fad51902f91e7fd3039e016a6556b5
         ),
     );
 
+    public static $prefixesPsr0 = array (
+        'P' => 
+        array (
+            'PayPal' => 
+            array (
+                0 => __DIR__ . '/..' . '/paypal/rest-api-sdk-php/lib',
+            ),
+        ),
+    );
+
     public static $classMap = array (
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
@@ -82,6 +97,7 @@ class ComposerStaticInit20fad51902f91e7fd3039e016a6556b5
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInit20fad51902f91e7fd3039e016a6556b5::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInit20fad51902f91e7fd3039e016a6556b5::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit20fad51902f91e7fd3039e016a6556b5::$prefixesPsr0;
             $loader->classMap = ComposerStaticInit20fad51902f91e7fd3039e016a6556b5::$classMap;
 
         }, null, ClassLoader::class);

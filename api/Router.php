@@ -1,7 +1,7 @@
 <?php
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
+    error_reporting(E_ALL & ~E_DEPRECATED);
     
     ob_start();
     
@@ -33,6 +33,7 @@
     require_once('./services/register.php');
     require_once('./services/AdminMailer.php');
     require_once('./services/LandlordHandler.php');
+    require 'services/paypalService.php';
 
     
 
@@ -75,48 +76,73 @@
                         ]);
                     }
                     break;
-                    case 'logout':
-                        echo json_encode($login->logoutUser($data));
-                        break;
-                    case 'register':
-                        echo json_encode($register->registerUser($data));
-                        break;
-                    case 'mail':
-                            echo json_encode($mail->sendEmail($data));
-                            break;
-                    case 'schedule':
-                            echo json_encode($mail->scheduledSend($data));
-                            break;
-                    case 'announcement':
-                        echo json_encode($landlord->createAnnouncement($data));
-                        break;
-                    case 'apartment':
-                        echo json_encode($landlord->createApartment($data));
-                        break;
-                    default:
-                        echo "This is forbidden";
-                        http_response_code(403);
-                        break;
+                case 'logout':
+                    echo json_encode($login->logoutUser($data));
+                    break;
+                case 'register':
+                    echo json_encode($register->registerUser($data));
+                    break;
+                case 'mail':
+                    echo json_encode($mail->sendEmail($data));
+                    break;
+                case 'schedule':
+                    echo json_encode($mail->scheduledSend($data));
+                    break;
+                case 'announcement':
+                    echo json_encode($landlord->createAnnouncement($data));
+                    break;
+                case 'apartment':
+                    echo json_encode($landlord->createApartment($data));
+                    break;
+                case 'createPayment':
+                    $paypalService = new PayPalService();
+                    $amount = $data->amount;
+                    $currency = $data->currency;
+                    $returnUrl = $data->returnUrl;
+                    $cancelUrl = $data->cancelUrl;
+
+                    try {
+                        $payment = $paypalService->createPayment($amount, $currency, $returnUrl, $cancelUrl);
+                        echo json_encode(['id' => $payment->getId()]);
+                    } catch (Exception $ex) {
+                        echo json_encode(['error' => $ex->getMessage()]);
                     }
-                        break;
-                        case 'GET':
-                            $data = json_decode(file_get_contents("php://input"));
-                            switch ($request[0]) {
-                                case 'getPosts':
-                                    echo json_encode($landlord->getPosts());
-                                    break;
-                                case 'getApartments':
-                                    echo json_encode($landlord->getApartments());
-                                    break;
-                                default:
-                                    echo "Method not available";
-                                    http_response_code(404);
-                                    break;
-                            }
-                            break;                        
-            case 'DELETE':
-                switch ($request[0]) {
-                  
+                    break;
+                case 'executePayment':
+                    $paypalService = new PayPalService();
+                    $paymentId = $data->paymentId;
+                    $payerId = $data->payerId;
+
+                    try {
+                        $result = $paypalService->executePayment($paymentId, $payerId);
+                        echo json_encode($result);
+                    } catch (Exception $ex) {
+                        echo json_encode(['error' => $ex->getMessage()]);
+                    }
+                    break;
+                default:
+                    http_response_code(403);
+                    break;
+            }
+            break;
+        case 'GET':
+            $data = json_decode(file_get_contents("php://input"));
+            switch ($request[0]) {
+                case 'getPosts':
+                    echo json_encode($landlord->getPosts());
+                    break;
+                case 'getApartments':
+                    echo json_encode($landlord->getApartments());
+                    break;
+                default:
+                    echo "Method not available";
+                    http_response_code(404);
+                    break;
+            }
+            break;                        
+        case 'DELETE':
+            switch ($request[0]) {
+              
             default:
                 echo "Method not available";
                 http_response_code(404);
