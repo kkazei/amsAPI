@@ -32,6 +32,7 @@
     require_once( './services/login.php');
     require_once('./services/register.php');
     require_once('./services/AdminMailer.php');
+    require_once('./services/LandlordHandler.php');
 
     
 
@@ -43,6 +44,7 @@
     $register = new RegisterUser($pdo);
     $login = new Login($pdo);
     $mail = new Mail($pdo);
+    $landlord = new LandlordHandler($pdo);
     
     
    
@@ -85,6 +87,12 @@
                     case 'schedule':
                             echo json_encode($mail->scheduledSend($data));
                             break;
+                    case 'announcement':
+                        echo json_encode($landlord->createAnnouncement($data));
+                        break;
+                    case 'apartment':
+                        echo json_encode($landlord->createApartment($data));
+                        break;
                     default:
                         echo "This is forbidden";
                         http_response_code(403);
@@ -94,7 +102,12 @@
                         case 'GET':
                             $data = json_decode(file_get_contents("php://input"));
                             switch ($request[0]) {
-                               
+                                case 'getPosts':
+                                    echo json_encode($landlord->getPosts());
+                                    break;
+                                case 'getApartments':
+                                    echo json_encode($landlord->getApartments());
+                                    break;
                                 default:
                                     echo "Method not available";
                                     http_response_code(404);
