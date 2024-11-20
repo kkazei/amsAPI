@@ -93,6 +93,9 @@
                     case 'apartment':
                         echo json_encode($landlord->createApartment($data));
                         break;
+                    case 'assignTenant':
+                        echo json_encode($landlord->assignTenantToApartment($data));
+                        break;
                     default:
                         echo "This is forbidden";
                         http_response_code(403);
@@ -107,6 +110,9 @@
                                     break;
                                 case 'getApartments':
                                     echo json_encode($landlord->getApartments());
+                                    break;
+                                case 'getTenants':
+                                    echo json_encode($landlord->getTenants());
                                     break;
                                 default:
                                     echo "Method not available";

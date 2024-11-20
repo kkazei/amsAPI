@@ -115,7 +115,82 @@ class LandlordHandler
             return $this->sendErrorResponse("Failed to retrieve apartments", 500);
         }
     }
+
+    public function assignTenantToApartment() {
+        $data = json_decode(file_get_contents("php://input"));
     
+        // Extract the data from the incoming JSON
+        $apartment_id = $data->apartment_id ?? null;
+        $tenant_id = $data->tenant_id ?? null;
+    
+        // Validate if necessary
+        if (empty($apartment_id) || empty($tenant_id)) {
+            return $this->sendErrorResponse("Apartment ID and Tenant ID are required.", 400);
+        }
+    
+        // Check if the apartment exists
+        $queryCheckApartment = "SELECT * FROM apartments WHERE apartment_id = :apartment_id";
+        $stmtCheckApartment = $this->conn->prepare($queryCheckApartment);
+        $stmtCheckApartment->bindParam(':apartment_id', $apartment_id);
+    
+        if (!$stmtCheckApartment->execute() || $stmtCheckApartment->rowCount() == 0) {
+            return $this->sendErrorResponse("Apartment not found.", 404);
+        }
+    
+        // Check if the tenant exists
+        $queryCheckTenant = "SELECT * FROM tenants WHERE tenant_id = :tenant_id";
+        $stmtCheckTenant = $this->conn->prepare($queryCheckTenant);
+        $stmtCheckTenant->bindParam(':tenant_id', $tenant_id);
+    
+        if (!$stmtCheckTenant->execute() || $stmtCheckTenant->rowCount() == 0) {
+            return $this->sendErrorResponse("Tenant not found.", 404);
+        }
+    
+        // Assign tenant to apartment (update apartments table)
+        $queryAssignTenantToApartment = "UPDATE apartments SET tenant_id = :tenant_id WHERE apartment_id = :apartment_id";
+        $stmtAssignTenantToApartment = $this->conn->prepare($queryAssignTenantToApartment);
+        $stmtAssignTenantToApartment->bindParam(':tenant_id', $tenant_id);
+        $stmtAssignTenantToApartment->bindParam(':apartment_id', $apartment_id);
+    
+        // Update tenants table to set apartment_id for the tenant
+        $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id WHERE tenant_id = :tenant_id";
+        $stmtAssignApartmentToTenant = $this->conn->prepare($queryAssignApartmentToTenant);
+        $stmtAssignApartmentToTenant->bindParam(':apartment_id', $apartment_id);
+        $stmtAssignApartmentToTenant->bindParam(':tenant_id', $tenant_id);
+    
+        // Execute both queries inside a transaction to ensure data integrity
+        try {
+            $this->conn->beginTransaction();
+    
+            // Execute the queries
+            if ($stmtAssignTenantToApartment->execute() && $stmtAssignApartmentToTenant->execute()) {
+                $this->conn->commit();
+                return $this->sendSuccessResponse("Tenant successfully assigned to apartment.", 200);
+            } else {
+                $this->conn->rollBack();
+                return $this->sendErrorResponse("Failed to assign tenant to apartment.", 500);
+            }
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
+        }
+    }
+    
+    
+    public function getTenants() {
+        // Prepare the SQL query to get tenants data
+        $query = "SELECT * FROM tenants";
+
+        // Execute the query
+        $stmt = $this->conn->prepare($query);
+
+        if ($stmt->execute()) {
+            $tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $tenants;
+        } else {
+            return $this->sendErrorResponse("Failed to retrieve tenants", 500);
+        }
+    }
     
     private function sendErrorResponse($message, $statusCode) {
         http_response_code($statusCode);
