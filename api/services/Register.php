@@ -19,7 +19,7 @@ class RegisterUser {
     public function registerUser() {
         // Get POST data
         $data = json_decode(file_get_contents("php://input"));
-
+    
         // Check if all required fields are provided and not empty
         if (
             empty($data->user_email) ||
@@ -31,19 +31,19 @@ class RegisterUser {
             echo json_encode(array("message" => "All fields are required."));
             return;
         }
-
+    
         // Extract data
         $email = $data->user_email;
         $password = $data->password;
         $lastName = $data->user_lastname;
         $firstName = $data->user_firstname;
-
-        // Set default user role
-        $userRole = 'user';
-
+    
+        // Determine user role
+        $userRole = isset($data->user_role) && $data->user_role === 'admin' ? 'admin' : 'user';
+    
         // Database table name
         $table_name = 'users';
-
+    
         // SQL query to insert user data
         $query = "INSERT INTO " . $table_name . "
                     SET user_email = :email,
@@ -51,10 +51,10 @@ class RegisterUser {
                         user_lastname = :lastname,
                         user_firstname = :firstname,
                         user_role = :user_role";
-
+    
         // Prepare the SQL statement
         $stmt = $this->conn->prepare($query);
-        
+    
         // Bind parameters
         $stmt->bindParam(':email', $email);
         $password_hash = password_hash($password, PASSWORD_BCRYPT);
@@ -62,7 +62,7 @@ class RegisterUser {
         $stmt->bindParam(':firstname', $firstName);
         $stmt->bindParam(':lastname', $lastName);
         $stmt->bindParam(':user_role', $userRole);
-
+    
         // Execute the query
         if ($stmt->execute()) {
             http_response_code(200);
@@ -73,5 +73,5 @@ class RegisterUser {
         }
     }
 }
-
+    
 ?>
