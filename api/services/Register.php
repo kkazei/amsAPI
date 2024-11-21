@@ -24,8 +24,8 @@ class RegisterUser {
         if (
             empty($data->user_email) ||
             empty($data->password) ||
-            empty($data->user_lastname) ||
-            empty($data->user_firstname)
+            empty($data->fullname) ||
+            empty($data->user_phone)
         ) {
             http_response_code(400);
             echo json_encode(array("message" => "All fields are required."));
@@ -35,8 +35,8 @@ class RegisterUser {
         // Extract data
         $email = $data->user_email;
         $password = $data->password;
-        $lastName = $data->user_lastname;
-        $firstName = $data->user_firstname;
+        $fullName = $data->fullname;
+        $phone = $data->user_phone;
     
         // Determine user role
         $userRole = isset($data->user_role) && $data->user_role === 'admin' ? 'admin' : 'user';
@@ -45,13 +45,12 @@ class RegisterUser {
         $table_name = $userRole === 'admin' ? 'users' : 'tenants';
     
         // SQL query to insert user/tenant data
-$query = "INSERT INTO " . $table_name . "
-SET " . ($userRole === 'admin' ? "user_email" : "tenant_email") . " = :email,
-    password = :password,
-    " . ($userRole === 'admin' ? "user_lastname" : "tenant_lastname") . " = :lastname,
-    " . ($userRole === 'admin' ? "user_firstname" : "tenant_firstname") . " = :firstname" .
-    ($userRole === 'admin' ? ", user_role = :user_role" : "");
-
+        $query = "INSERT INTO " . $table_name . "
+        SET " . ($userRole === 'admin' ? "user_email" : "tenant_email") . " = :email,
+            password = :password,
+            " . ($userRole === 'admin' ? "user_fullname" : "tenant_fullname") . " = :fullname,
+            " . ($userRole === 'admin' ? "user_phone" : "tenant_phone") . " = :phone" . 
+            ($userRole === 'admin' ? ", user_role = :user_role" : "");
     
         // Prepare the SQL statement
         $stmt = $this->conn->prepare($query);
@@ -60,19 +59,19 @@ SET " . ($userRole === 'admin' ? "user_email" : "tenant_email") . " = :email,
         $stmt->bindParam(':email', $email);
         $password_hash = password_hash($password, PASSWORD_BCRYPT);
         $stmt->bindParam(':password', $password_hash);
-        $stmt->bindParam(':firstname', $firstName);
-        $stmt->bindParam(':lastname', $lastName);
+        $stmt->bindParam(':fullname', $fullName);
+        $stmt->bindParam(':phone', $phone);
         if ($userRole === 'admin') {
             $stmt->bindParam(':user_role', $userRole);
         }
     
-        // Execute the query
+        // Execute the statement
         if ($stmt->execute()) {
-            http_response_code(200);
-            echo json_encode(array("message" => ucfirst($userRole) . " was successfully registered."));
+            http_response_code(201);
+            echo json_encode(array("message" => "User was created."));
         } else {
-            http_response_code(400);
-            echo json_encode(array("message" => "Unable to register the " . $userRole . "."));
+            http_response_code(503);
+            echo json_encode(array("message" => "Unable to create user."));
         }
     }
 }

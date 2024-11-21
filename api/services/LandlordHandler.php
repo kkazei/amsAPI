@@ -137,6 +137,11 @@ class LandlordHandler
             return $this->sendErrorResponse("Apartment not found.", 404);
         }
     
+        // Fetch apartment details (room, rent)
+        $apartment = $stmtCheckApartment->fetch(PDO::FETCH_ASSOC);
+        $room = $apartment['room'];
+        $rent = $apartment['rent'];
+    
         // Check if the tenant exists
         $queryCheckTenant = "SELECT * FROM tenants WHERE tenant_id = :tenant_id";
         $stmtCheckTenant = $this->conn->prepare($queryCheckTenant);
@@ -146,17 +151,25 @@ class LandlordHandler
             return $this->sendErrorResponse("Tenant not found.", 404);
         }
     
+        // Calculate next due date (one month from the current date)
+        $dueDate = new DateTime(); // Current date
+        $dueDate->modify('+1 month'); // Add one month
+        $formattedDueDate = $dueDate->format('Y-m-d'); // Format as YYYY-MM-DD
+    
         // Assign tenant to apartment (update apartments table)
         $queryAssignTenantToApartment = "UPDATE apartments SET tenant_id = :tenant_id WHERE apartment_id = :apartment_id";
         $stmtAssignTenantToApartment = $this->conn->prepare($queryAssignTenantToApartment);
         $stmtAssignTenantToApartment->bindParam(':tenant_id', $tenant_id);
         $stmtAssignTenantToApartment->bindParam(':apartment_id', $apartment_id);
     
-        // Update tenants table to set apartment_id and set the status as 'pending'
-        $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id, status = 'pending' WHERE tenant_id = :tenant_id";
+        // Update tenants table to set apartment_id, set status as 'pending', copy room/rent from apartment, and set due date
+        $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id, status = 'pending', room = :room, rent = :rent, due_date = :due_date WHERE tenant_id = :tenant_id";
         $stmtAssignApartmentToTenant = $this->conn->prepare($queryAssignApartmentToTenant);
         $stmtAssignApartmentToTenant->bindParam(':apartment_id', $apartment_id);
         $stmtAssignApartmentToTenant->bindParam(':tenant_id', $tenant_id);
+        $stmtAssignApartmentToTenant->bindParam(':room', $room);
+        $stmtAssignApartmentToTenant->bindParam(':rent', $rent);
+        $stmtAssignApartmentToTenant->bindParam(':due_date', $formattedDueDate); // Pass the calculated due date
     
         // Execute both queries inside a transaction to ensure data integrity
         try {
@@ -175,6 +188,7 @@ class LandlordHandler
             return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
         }
     }
+    
     
     
     
