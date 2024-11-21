@@ -152,8 +152,8 @@ class LandlordHandler
         $stmtAssignTenantToApartment->bindParam(':tenant_id', $tenant_id);
         $stmtAssignTenantToApartment->bindParam(':apartment_id', $apartment_id);
     
-        // Update tenants table to set apartment_id for the tenant
-        $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id WHERE tenant_id = :tenant_id";
+        // Update tenants table to set apartment_id and set the status as 'pending'
+        $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id, status = 'pending' WHERE tenant_id = :tenant_id";
         $stmtAssignApartmentToTenant = $this->conn->prepare($queryAssignApartmentToTenant);
         $stmtAssignApartmentToTenant->bindParam(':apartment_id', $apartment_id);
         $stmtAssignApartmentToTenant->bindParam(':tenant_id', $tenant_id);
@@ -175,6 +175,7 @@ class LandlordHandler
             return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
         }
     }
+    
     
     
     public function getTenants() {
