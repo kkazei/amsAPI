@@ -42,14 +42,14 @@ class LandlordHandler
                 return $this->sendErrorResponse('Invalid image format', 400);
             }
 
-            $uploadDir = 'C:/xampp/htdocs/AMS/AMS/src/assets/images/';
+            $uploadDir = 'C:/xampp/htdocs/AMS/AMS/public/images/';
             $imagePath = $uploadDir . basename($image['name']);
 
             if (!move_uploaded_file($image['tmp_name'], $imagePath)) {
                 return $this->sendErrorResponse('Failed to upload image', 500);
             }
 
-            $imagePath = '/assets/images/' . basename($image['name']);
+            $imagePath = '/images/' . basename($image['name']);
         } else {
             $imagePath = null;
         }
