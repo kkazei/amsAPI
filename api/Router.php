@@ -88,7 +88,14 @@
                             echo json_encode($mail->scheduledSend($data));
                             break;
                     case 'announcement':
-                        echo json_encode($landlord->createAnnouncement($data));
+                        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                            $data = $_POST; // Use $_POST to get form data
+                            $data['image'] = $_FILES['image'] ?? null; // Add the uploaded file to the data array
+                            echo json_encode($landlord->createAnnouncement($data));
+                        } else {
+                            echo "Method not allowed";
+                            http_response_code(405);
+                        }
                         break;
                     case 'apartment':
                         echo json_encode($landlord->createApartment($data));

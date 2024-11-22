@@ -14,13 +14,11 @@ class LandlordHandler
         $this->pdo = $pdo;
     }
 
-    public function createAnnouncement() {
-        $data = json_decode(file_get_contents("php://input"));
-
-        // Extract the data from the incoming JSON
-        $title = $data->title ?? '';
-        $content = $data->content ?? '';
-        $landlord_id = $data->landlord_id;
+    public function createAnnouncement($data) {
+        // Extract the data from the incoming form data
+        $title = $data['title'] ?? '';
+        $content = $data['content'] ?? '';
+        $landlord_id = $data['landlord_id'] ?? '';
 
         // Validate if necessary
         $fields = [
@@ -34,18 +32,41 @@ class LandlordHandler
             }
         }
 
+        // Handle image upload
+        if (isset($data['image']) && $data['image']['error'] == 0) {
+            $image = $data['image'];
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+            $fileExtension = pathinfo($image['name'], PATHINFO_EXTENSION);
+
+            if (!in_array($fileExtension, $allowedExtensions)) {
+                return $this->sendErrorResponse('Invalid image format', 400);
+            }
+
+            $uploadDir = __DIR__ . '/../uploads/';
+            $imagePath = $uploadDir . basename($image['name']);
+
+            if (!move_uploaded_file($image['tmp_name'], $imagePath)) {
+                return $this->sendErrorResponse('Failed to upload image', 500);
+            }
+
+            $imagePath = '/uploads/' . basename($image['name']);
+        } else {
+            $imagePath = null;
+        }
+
         $table_name = 'posts';
-        $query = "INSERT INTO " . $table_name . " (title, content, landlord_id) VALUES (:title, :content, :landlord_id)";
+        $query = "INSERT INTO " . $table_name . " (title, content, landlord_id, image_path) VALUES (:title, :content, :landlord_id, :image_path)";
         
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':title', $title);
         $stmt->bindParam(':content', $content);
         $stmt->bindParam(':landlord_id', $landlord_id);
+        $stmt->bindParam(':image_path', $imagePath);
 
         if ($stmt->execute()) {
-            return $this->sendSuccessResponse("Announcement created successfully", 201);
+            return $this->sendSuccessResponse('Announcement created successfully', 201);
         } else {
-            return $this->sendErrorResponse("Failed to create announcement", 500);
+            return $this->sendErrorResponse('Failed to create announcement', 500);
         }
     }
 
