@@ -123,13 +123,13 @@ class LandlordHandler
         $apartment_id = $data->apartment_id ?? null;
         $tenant_id = $data->tenant_id ?? null;
     
-        // Validate if necessary
+        // Validate input
         if (empty($apartment_id) || empty($tenant_id)) {
             return $this->sendErrorResponse("Apartment ID and Tenant ID are required.", 400);
         }
     
-        // Check if the apartment exists
-        $queryCheckApartment = "SELECT * FROM apartments WHERE apartment_id = :apartment_id";
+        // Check if the apartment exists and whether it already has a tenant assigned
+        $queryCheckApartment = "SELECT tenant_id, room, rent FROM apartments WHERE apartment_id = :apartment_id";
         $stmtCheckApartment = $this->conn->prepare($queryCheckApartment);
         $stmtCheckApartment->bindParam(':apartment_id', $apartment_id);
     
@@ -137,8 +137,12 @@ class LandlordHandler
             return $this->sendErrorResponse("Apartment not found.", 404);
         }
     
-        // Fetch apartment details (room, rent)
+        // Fetch apartment details
         $apartment = $stmtCheckApartment->fetch(PDO::FETCH_ASSOC);
+        if (!empty($apartment['tenant_id'])) {
+            return $this->sendErrorResponse("This apartment already has a tenant assigned.", 400);
+        }
+    
         $room = $apartment['room'];
         $rent = $apartment['rent'];
     
@@ -152,9 +156,9 @@ class LandlordHandler
         }
     
         // Calculate next due date (one month from the current date)
-        $dueDate = new DateTime(); // Current date
-        $dueDate->modify('+1 month'); // Add one month
-        $formattedDueDate = $dueDate->format('Y-m-d'); // Format as YYYY-MM-DD
+        $dueDate = new DateTime();
+        $dueDate->modify('+1 month');
+        $formattedDueDate = $dueDate->format('Y-m-d');
     
         // Assign tenant to apartment (update apartments table)
         $queryAssignTenantToApartment = "UPDATE apartments SET tenant_id = :tenant_id WHERE apartment_id = :apartment_id";
@@ -169,7 +173,7 @@ class LandlordHandler
         $stmtAssignApartmentToTenant->bindParam(':tenant_id', $tenant_id);
         $stmtAssignApartmentToTenant->bindParam(':room', $room);
         $stmtAssignApartmentToTenant->bindParam(':rent', $rent);
-        $stmtAssignApartmentToTenant->bindParam(':due_date', $formattedDueDate); // Pass the calculated due date
+        $stmtAssignApartmentToTenant->bindParam(':due_date', $formattedDueDate);
     
         // Execute both queries inside a transaction to ensure data integrity
         try {
@@ -188,6 +192,71 @@ class LandlordHandler
             return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
         }
     }
+
+    public function updateApartmentAndTenant() {
+        $data = json_decode(file_get_contents("php://input"));
+    
+        // Extract the data from the incoming JSON
+        $apartment_id = $data->apartment_id ?? null;
+        $tenant_id = $data->tenant_id ?? null;
+        $action = $data->action ?? null; // Specify the action: 'remove_tenant'
+    
+        // Validate input
+        if (empty($apartment_id) || empty($action)) {
+            return $this->sendErrorResponse("Apartment ID and action are required.", 400);
+        }
+    
+        // Check if the apartment exists
+        $queryCheckApartment = "SELECT tenant_id FROM apartments WHERE apartment_id = :apartment_id";
+        $stmtCheckApartment = $this->conn->prepare($queryCheckApartment);
+        $stmtCheckApartment->bindParam(':apartment_id', $apartment_id);
+    
+        if (!$stmtCheckApartment->execute() || $stmtCheckApartment->rowCount() == 0) {
+            return $this->sendErrorResponse("Apartment not found.", 404);
+        }
+    
+        $apartment = $stmtCheckApartment->fetch(PDO::FETCH_ASSOC);
+        $current_tenant_id = $apartment['tenant_id'];
+    
+        // Start a transaction to ensure data consistency
+        try {
+            $this->conn->beginTransaction();
+    
+            if ($action === 'remove_tenant') {
+                // Check if a tenant is assigned
+                if (empty($current_tenant_id)) {
+                    return $this->sendErrorResponse("No tenant is currently assigned to this apartment.", 400);
+                }
+    
+                // Remove the tenant from the apartment
+                $queryUpdateApartment = "UPDATE apartments SET tenant_id = NULL WHERE apartment_id = :apartment_id";
+                $stmtUpdateApartment = $this->conn->prepare($queryUpdateApartment);
+                $stmtUpdateApartment->bindParam(':apartment_id', $apartment_id);
+    
+                // Update the tenant's record
+                $queryUpdateTenant = "UPDATE tenants SET apartment_id = NULL, status = 'inactive', rent = NULL, room = NULL, due_date = NULL WHERE tenant_id = :tenant_id";
+                $stmtUpdateTenant = $this->conn->prepare($queryUpdateTenant);
+                $stmtUpdateTenant->bindParam(':tenant_id', $current_tenant_id);
+    
+                // Execute both updates
+                if ($stmtUpdateApartment->execute() && $stmtUpdateTenant->execute()) {
+                    $this->conn->commit();
+                    return $this->sendSuccessResponse("Tenant removed from apartment successfully.", 200);
+                } else {
+                    $this->conn->rollBack();
+                    return $this->sendErrorResponse("Failed to remove tenant from apartment.", 500);
+                }
+            } else {
+                $this->conn->rollBack();
+                return $this->sendErrorResponse("Invalid action specified.", 400);
+            }
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
+        }
+    }
+    
+    
     
     
     

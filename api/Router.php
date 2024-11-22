@@ -96,6 +96,7 @@
                     case 'assignTenant':
                         echo json_encode($landlord->assignTenantToApartment($data));
                         break;
+                        
                     default:
                         echo "This is forbidden";
                         http_response_code(403);
@@ -119,7 +120,20 @@
                                     http_response_code(404);
                                     break;
                             }
-                            break;                        
+                            break;    
+                            case 'PUT':
+                                $data = json_decode(file_get_contents("php://input"));
+                                switch ($request[0]) {
+                                    case 'updateApartment':
+                                        echo json_encode($landlord->updateApartmentAndTenant($data));
+                                        break;
+                                    default:
+                                        echo "Method not available";
+                                        http_response_code(404);
+                                        break;
+                                }
+                                break;
+                                                
             case 'DELETE':
                 switch ($request[0]) {
                   
