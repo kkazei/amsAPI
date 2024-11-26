@@ -42,14 +42,14 @@ class LandlordHandler
                 return $this->sendErrorResponse('Invalid image format', 400);
             }
 
-            $uploadDir = 'C:/xampp/htdocs/AMS/AMS/public/images/';
+            $uploadDir = __DIR__ . '/../uploads/';
             $imagePath = $uploadDir . basename($image['name']);
 
             if (!move_uploaded_file($image['tmp_name'], $imagePath)) {
                 return $this->sendErrorResponse('Failed to upload image', 500);
             }
 
-            $imagePath = '/images/' . basename($image['name']);
+            $imagePath = 'uploads/' . basename($image['name']);
         } else {
             $imagePath = null;
         }
@@ -68,6 +68,44 @@ class LandlordHandler
         } else {
             return $this->sendErrorResponse('Failed to create announcement', 500);
         }
+    }
+
+    public function addImage($file) {
+        $code = 0;
+        $errmsg = "";
+
+        // File upload logic
+        $targetDir = "uploads/";
+        
+        // Check if the directory exists, if not create it
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0777, true);
+        }
+
+        $targetFile = $targetDir . basename($file["name"]);
+        $imageFileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+        $allowedTypes = array("jpg", "png", "jpeg", "gif");
+
+        if (in_array($imageFileType, $allowedTypes)) {
+            if (move_uploaded_file($file["tmp_name"], $targetFile)) {
+                $sql = "INSERT INTO images (imgName, img) VALUES (?, ?)";
+                try {
+                    $stmt = $this->pdo->prepare($sql);
+                    $stmt->execute([
+                        $file["name"],
+                        $targetFile
+                    ]);
+                } catch (\PDOException $e) {
+                }
+            } else {
+                $errmsg = "Failed to move uploaded file.";
+                $code = 500;
+            }
+        } else {
+            $errmsg = "Unsupported file type.";
+            $code = 400;
+        }
+
     }
 
     public function createApartment() {
@@ -277,6 +315,29 @@ class LandlordHandler
         }
     }
     
+    public function getImage() {
+        try {
+            // Prepare SQL statement to fetch images
+            $sql = "SELECT * FROM images";
+            $stmt = $this->pdo->query($sql);
+            
+            // Fetch all rows as an associative array
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Return the fetched images data
+            return [
+                "status" => "success",
+                "message" => "Successfully retrieved images.",
+                "data" => $result
+            ];
+        } catch(PDOException $e) {
+            // Handle any potential errors
+            return [
+                "status" => "error",
+                "message" => "Failed to retrieve images: " . $e->getMessage()
+            ];
+        }
+    }
     
     
     

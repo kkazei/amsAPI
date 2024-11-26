@@ -103,6 +103,15 @@
                     case 'assignTenant':
                         echo json_encode($landlord->assignTenantToApartment($data));
                         break;
+                    case 'uploadImage':
+                            if (isset($_FILES['image'])) {
+                                // Return JSON-encoded data for adding image
+                                echo json_encode($landlord->addImage($_FILES['image']));
+                            } else {
+                                echo json_encode(['error' => 'No file uploaded.']);
+                                http_response_code(400);
+                            }
+                            break;
                         
                     default:
                         echo "This is forbidden";
@@ -125,6 +134,9 @@
                                 default:
                                     echo "Method not available";
                                     http_response_code(404);
+                                    break;
+                                case 'loadImage':
+                                    echo json_encode($landlord->getImage());
                                     break;
                             }
                             break;    
