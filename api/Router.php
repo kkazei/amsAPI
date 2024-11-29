@@ -33,6 +33,7 @@
     require_once('./services/register.php');
     require_once('./services/AdminMailer.php');
     require_once('./services/LandlordHandler.php');
+    require_once('./services/TenantHandler.php');
 
     
 
@@ -45,6 +46,7 @@
     $login = new Login($pdo);
     $mail = new Mail($pdo);
     $landlord = new LandlordHandler($pdo);
+    $tenant = new TenantHandler($pdo);
     
     
    
@@ -112,6 +114,19 @@
                                 http_response_code(400);
                             }
                             break;
+                    case 'payInvoice':
+                        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                            $tenantId = $_POST['tenantId'];
+                            $amount = $_POST['amount'];
+                            $referenceNumber = $_POST['referenceNumber'];
+                            $proofOfPaymentFile = $_FILES['proofOfPayment'] ?? null;
+                            $response = $tenant->payInvoice($tenantId, $amount, $referenceNumber, $proofOfPaymentFile);
+                            echo json_encode($response);
+                        } else {
+                            echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+                            http_response_code(405);
+                        }
+                        break;
                         
                     default:
                         echo "This is forbidden";
