@@ -153,6 +153,9 @@
                                 case 'loadImage':
                                     echo json_encode($landlord->getImage());
                                     break;
+                                case 'getPaymentDetails':
+                                        echo json_encode($tenant->getPaymemtDetails());
+                                        break;
                             }
                             break;    
                             case 'PUT':
