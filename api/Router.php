@@ -127,6 +127,16 @@
                             http_response_code(405);
                         }
                         break;
+                    case 'concern':
+                            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                                $data = $_POST; // Use $_POST to get form data
+                                $data['image'] = $_FILES['image'] ?? null; // Add the uploaded file to the data array
+                                echo json_encode($tenant->createConcern($data));
+                            } else {
+                                echo "Method not allowed";
+                                http_response_code(405);
+                            }
+                            break;
                         
                     default:
                         echo "This is forbidden";
@@ -156,6 +166,9 @@
                                 case 'getPaymentDetails':
                                         echo json_encode($tenant->getPaymemtDetails());
                                         break;
+                                case 'getConcerns':
+                                            echo json_encode($tenant->getConcern());
+                                            break;
                             }
                             break;    
                             case 'PUT':

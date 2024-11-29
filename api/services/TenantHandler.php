@@ -92,6 +92,83 @@ class TenantHandler{
             ];
         }
     }
+
+    public function createConcern($data) {
+        // Extract the data from the incoming form data
+        $title = $data['title'] ?? '';
+        $content = $data['content'] ?? '';
+        $tenant_id = $data['tenant_id'] ?? '';
+    
+        // Validate if necessary
+        $fields = [
+            'title' => 'Announcement title cannot be empty',
+            'content' => 'Announcement content cannot be empty',
+        ];
+    
+        foreach ($fields as $field => $errorMessage) {
+            if (empty($$field)) {
+                return $this->sendErrorResponse($errorMessage, 400);
+            }
+        }
+    
+        // Handle image upload (from $_FILES)
+        $imagePath = null;
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == 0) {
+            $image = $_FILES['attachment']; // Accessing file from $_FILES superglobal
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+            $fileExtension = strtolower(pathinfo($image['name'], PATHINFO_EXTENSION));
+    
+            if (!in_array($fileExtension, $allowedExtensions)) {
+                return $this->sendErrorResponse('Invalid image format', 400);
+            }
+    
+            // Create uploads directory if it doesn't exist
+            $uploadDir = __DIR__ . '/../uploads/concerns/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+    
+            // Generate a unique file path
+            $imagePath = $uploadDir . uniqid() . '.' . $fileExtension;
+            if (!move_uploaded_file($image['tmp_name'], $imagePath)) {
+                return $this->sendErrorResponse('Failed to upload image', 500);
+            }
+    
+            // Store relative image path in the database
+            $imagePath = 'uploads/concerns/' . basename($imagePath);
+        }
+    
+        // Insert data into the database
+        $table_name = 'concerns';
+        $query = "INSERT INTO " . $table_name . " (title, content, tenant_id, image_path) VALUES (:title, :content, :tenant_id, :image_path)";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':title', $title);
+        $stmt->bindParam(':content', $content);
+        $stmt->bindParam(':tenant_id', $tenant_id);
+        $stmt->bindParam(':image_path', $imagePath);
+    
+        if ($stmt->execute()) {
+            return $this->sendSuccessResponse('Concern created successfully', 201);
+        } else {
+            return $this->sendErrorResponse('Failed to create concern', 500);
+        }
+    }
+    
+    public function getConcern() {
+        // Prepare the SQL query to get posts data
+        $query = "SELECT * FROM concerns";
+    
+        // Execute the query
+        $stmt = $this->conn->prepare($query);
+    
+        if ($stmt->execute()) {
+            $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $posts;
+        } else {
+            return $this->sendErrorResponse("Failed to retrieve posts", 500);
+        }
+    }
     
     
     public function getPaymemtDetails() {
@@ -108,6 +185,7 @@ class TenantHandler{
             return $this->sendErrorResponse("Failed to retrieve posts", 500);
         }
     }
+    
 
     private function sendErrorResponse($message, $statusCode) {
         http_response_code($statusCode);
