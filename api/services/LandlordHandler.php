@@ -70,32 +70,40 @@ class LandlordHandler
         }
     }
 
-    public function addImage($file) {
+    public function addLease($file, $tenantId, $room) {
         $code = 0;
         $errmsg = "";
-
+    
         // File upload logic
-        $targetDir = "uploads/";
-        
+        $targetDir = "uploads/leases/";
+    
         // Check if the directory exists, if not create it
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0777, true);
         }
-
+    
+        // Set the target file path and get file extension
         $targetFile = $targetDir . basename($file["name"]);
         $imageFileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
         $allowedTypes = array("jpg", "png", "jpeg", "gif");
-
+    
+        // Check file type
         if (in_array($imageFileType, $allowedTypes)) {
+            // Move the file to the target directory
             if (move_uploaded_file($file["tmp_name"], $targetFile)) {
-                $sql = "INSERT INTO images (imgName, img) VALUES (?, ?)";
+                // Prepare SQL to insert the lease record
+                $sql = "INSERT INTO leases (imgName, img, tenant_id, room) VALUES (?, ?, ?, ?)";
                 try {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([
-                        $file["name"],
-                        $targetFile
+                        $file["name"],  // imgName
+                        $targetFile,    // img (path to file)
+                        $tenantId,      // tenant_id
+                        $room           // room
                     ]);
                 } catch (\PDOException $e) {
+                    $errmsg = "Error inserting lease record: " . $e->getMessage();
+                    $code = 500;
                 }
             } else {
                 $errmsg = "Failed to move uploaded file.";
@@ -105,8 +113,16 @@ class LandlordHandler
             $errmsg = "Unsupported file type.";
             $code = 400;
         }
-
+    
+        return [
+            'code' => $code,
+            'errmsg' => $errmsg
+        ];
     }
+    
+
+    
+    
 
     public function createApartment() {
         $data = json_decode(file_get_contents("php://input"));
@@ -315,10 +331,10 @@ class LandlordHandler
         }
     }
     
-    public function getImage() {
+    public function getLeases() {
         try {
             // Prepare SQL statement to fetch images
-            $sql = "SELECT * FROM images";
+            $sql = "SELECT * FROM leases";
             $stmt = $this->pdo->query($sql);
             
             // Fetch all rows as an associative array

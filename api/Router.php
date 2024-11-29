@@ -105,15 +105,20 @@
                     case 'assignTenant':
                         echo json_encode($landlord->assignTenantToApartment($data));
                         break;
-                    case 'uploadImage':
-                            if (isset($_FILES['image'])) {
-                                // Return JSON-encoded data for adding image
-                                echo json_encode($landlord->addImage($_FILES['image']));
+                    case 'uploadLease':
+                            if (isset($_FILES['image']) && isset($_POST['tenant_id']) && isset($_POST['room'])) {
+                                // Get tenant ID and room from POST data
+                                $tenantId = $_POST['tenant_id'];
+                                $room = $_POST['room'];
+                        
+                                // Return JSON-encoded data for adding lease image
+                                echo json_encode($landlord->addLease($_FILES['image'], $tenantId, $room));
                             } else {
-                                echo json_encode(['error' => 'No file uploaded.']);
+                                echo json_encode(['error' => 'No file uploaded or missing tenant information.']);
                                 http_response_code(400);
                             }
                             break;
+                        
                     case 'payInvoice':
                         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $tenantId = $_POST['tenantId'];
@@ -160,8 +165,8 @@
                                     echo "Method not available";
                                     http_response_code(404);
                                     break;
-                                case 'loadImage':
-                                    echo json_encode($landlord->getImage());
+                                case 'loadLeases':
+                                    echo json_encode($landlord->getLeases());
                                     break;
                                 case 'getPaymentDetails':
                                         echo json_encode($tenant->getPaymemtDetails());
