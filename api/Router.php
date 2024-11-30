@@ -144,6 +144,15 @@
                                 http_response_code(405);
                             }
                             break;
+                    case 'uploadImage':
+                                if (isset($_FILES['image'])) {
+                                    // Return JSON-encoded data for adding image
+                                    echo json_encode($landlord->addImage($_FILES['image']));
+                                } else {
+                                    echo json_encode(['error' => 'No file uploaded.']);
+                                    http_response_code(400);
+                                }
+                                break;
                         
                     default:
                         echo "This is forbidden";
@@ -187,6 +196,9 @@
                                                     http_response_code(400);
                                                 }
                                                 break;
+                                case 'loadImage':
+                                            echo json_encode($landlord->getImage());
+                                            break;
                             }
                             break;    
                             case 'PUT':
