@@ -34,6 +34,7 @@
     require_once('./services/AdminMailer.php');
     require_once('./services/LandlordHandler.php');
     require_once('./services/TenantHandler.php');
+    require_once('./services/AnalyticsHandler.php');
 
     
 
@@ -47,6 +48,7 @@
     $mail = new Mail($pdo);
     $landlord = new LandlordHandler($pdo);
     $tenant = new TenantHandler($pdo);
+    $analytics = new AnalyticsHandler($pdo);
     
     
    
@@ -174,6 +176,17 @@
                                 case 'getConcerns':
                                             echo json_encode($tenant->getConcern());
                                             break;
+                                case 'getMonthlyIncome':
+                                                $month = $_GET['month'] ?? null;
+                                                $year = $_GET['year'] ?? null;
+                                    
+                                                if ($month && $year) {
+                                                    echo json_encode($analytics->getMonthlyIncome($month, $year));
+                                                } else {
+                                                    echo json_encode(['status' => 'error', 'message' => 'Month and year parameters are required.']);
+                                                    http_response_code(400);
+                                                }
+                                                break;
                             }
                             break;    
                             case 'PUT':
