@@ -445,6 +445,80 @@ class LandlordHandler
             ];
         }
     }
+
+    public function addMaintenance($data) {
+        // Extract properties from the $data object
+        $apartment_id = $data->apartment_id ?? null;
+        $landlord_id = $data->landlord_id ?? null;
+        $start_date = $data->start_date ?? null;
+        $end_date = $data->end_date ?? null;
+        $description = $data->description ?? null;
+        $expenses = $data->expenses ?? null;
+
+        // Validate required fields
+        $fields = [
+            'apartment_id' => 'Apartment ID is required.',
+            'landlord_id' => 'Landlord ID is required.',
+            'start_date' => 'Start date is required.',
+            'description' => 'Description is required.',
+        ];
+
+        foreach ($fields as $field => $errorMessage) {
+            if (empty($$field)) {
+                return $this->sendErrorResponse($errorMessage, 400);
+            }
+        }
+
+        // Validate date format for start_date and end_date
+        $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
+        if (!preg_match($datePattern, $start_date)) {
+            return $this->sendErrorResponse("Invalid start date format. Use YYYY-MM-DD.", 400);
+        }
+        if ($end_date && !preg_match($datePattern, $end_date)) {
+            return $this->sendErrorResponse("Invalid end date format. Use YYYY-MM-DD.", 400);
+        }
+
+        // Insert the maintenance record into the database
+        $query = "INSERT INTO maintenance (apartment_id, landlord_id, start_date, end_date, description, expenses)
+                  VALUES (:apartment_id, :landlord_id, :start_date, :end_date, :description, :expenses)";
+        
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':apartment_id', $apartment_id);
+            $stmt->bindParam(':landlord_id', $landlord_id);
+            $stmt->bindParam(':start_date', $start_date);
+            $stmt->bindParam(':end_date', $end_date);
+            $stmt->bindParam(':description', $description);
+            $stmt->bindParam(':expenses', $expenses);
+
+            if ($stmt->execute()) {
+                return $this->sendSuccessResponse("Maintenance task added successfully.", 201);
+            } else {
+                return $this->sendErrorResponse("Failed to add maintenance task.", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
+
+    public function getMaintenance() {
+        $query = "SELECT * FROM maintenance";
+        
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
+            $maintenanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return [
+                'status' => 'success',
+                'data' => $maintenanceRecords
+            ];
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
+    
     
     private function sendErrorResponse($message, $statusCode) {
         http_response_code($statusCode);

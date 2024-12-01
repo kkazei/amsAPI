@@ -91,6 +91,9 @@
                     case 'schedule':
                             echo json_encode($mail->scheduledSend($data));
                             break;
+                    case 'createMaintenance':
+                        echo json_encode($landlord->addMaintenance($data));
+                        break;
                     case 'announcement':
                         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $data = $_POST; // Use $_POST to get form data
@@ -182,6 +185,9 @@
                                 case 'getPaymentDetails':
                                         echo json_encode($tenant->getPaymemtDetails());
                                         break;
+                                case 'getMaintenance':
+                                            echo json_encode($landlord->getMaintenance());
+                                            break;
                                 case 'getConcerns':
                                             echo json_encode($tenant->getConcern());
                                             break;
