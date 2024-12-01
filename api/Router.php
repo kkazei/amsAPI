@@ -213,6 +213,12 @@
                                     case 'updateApartment':
                                         echo json_encode($landlord->updateApartmentAndTenant($data));
                                         break;
+                                    case 'updateMaintenance':
+                                            echo json_encode($landlord->updateMaintenance($data));
+                                            break;
+                                    case 'updateConcern':
+                                                echo json_encode($landlord->updateConcern($data));
+                                                break;
                                     default:
                                         echo "Method not available";
                                         http_response_code(404);

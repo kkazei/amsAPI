@@ -103,6 +103,7 @@ class TenantHandler{
         $title = $data['title'] ?? '';
         $content = $data['content'] ?? '';
         $tenant_id = $data['tenant_id'] ?? '';
+        $status = 'pending'; // Default status
     
         // Validate if necessary
         $fields = [
@@ -143,22 +144,28 @@ class TenantHandler{
             $imagePath = 'uploads/concerns/' . basename($imagePath);
         }
     
-        // Insert data into the database
-        $table_name = 'concerns';
-        $query = "INSERT INTO " . $table_name . " (title, content, tenant_id, image_path) VALUES (:title, :content, :tenant_id, :image_path)";
+        // Insert the concern record into the database
+        $query = "INSERT INTO concerns (title, content, tenant_id, status, image_path)
+                  VALUES (:title, :content, :tenant_id, :status, :image_path)";
         
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':title', $title);
-        $stmt->bindParam(':content', $content);
-        $stmt->bindParam(':tenant_id', $tenant_id);
-        $stmt->bindParam(':image_path', $imagePath);
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':title', $title);
+            $stmt->bindParam(':content', $content);
+            $stmt->bindParam(':tenant_id', $tenant_id);
+            $stmt->bindParam(':status', $status);
+            $stmt->bindParam(':image_path', $imagePath);
     
-        if ($stmt->execute()) {
-            return $this->sendSuccessResponse('Concern created successfully', 201);
-        } else {
-            return $this->sendErrorResponse('Failed to create concern', 500);
+            if ($stmt->execute()) {
+                return $this->sendSuccessResponse("Concern created successfully.", 201);
+            } else {
+                return $this->sendErrorResponse("Failed to create concern.", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
         }
     }
+    
     
     public function getConcern() {
         // Prepare the SQL query to get posts data

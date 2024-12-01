@@ -19,41 +19,43 @@ class LandlordHandler
         $title = $data['title'] ?? '';
         $content = $data['content'] ?? '';
         $landlord_id = $data['landlord_id'] ?? '';
-
+    
         // Validate if necessary
         $fields = [
             'title' => 'Announcement title cannot be empty',
             'content' => 'Announcement content cannot be empty',
         ];
-
+    
         foreach ($fields as $field => $errorMessage) {
             if (empty($$field)) {
                 return $this->sendErrorResponse($errorMessage, 400);
             }
         }
-
+    
         // Handle image upload
+        $imagePath = null;
         if (isset($data['image']) && $data['image']['error'] == 0) {
             $image = $data['image'];
             $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            $fileExtension = pathinfo($image['name'], PATHINFO_EXTENSION);
-
+            $fileExtension = strtolower(pathinfo($image['name'], PATHINFO_EXTENSION));
+    
             if (!in_array($fileExtension, $allowedExtensions)) {
                 return $this->sendErrorResponse('Invalid image format', 400);
             }
-
+    
             $uploadDir = __DIR__ . '/../uploads/';
-            $imagePath = $uploadDir . basename($image['name']);
-
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+    
+            $imagePath = $uploadDir . uniqid() . '.' . $fileExtension;
             if (!move_uploaded_file($image['tmp_name'], $imagePath)) {
                 return $this->sendErrorResponse('Failed to upload image', 500);
             }
-
-            $imagePath = 'uploads/' . basename($image['name']);
-        } else {
-            $imagePath = null;
+    
+            $imagePath = 'uploads/' . basename($imagePath);
         }
-
+    
         $table_name = 'posts';
         $query = "INSERT INTO " . $table_name . " (title, content, landlord_id, image_path) VALUES (:title, :content, :landlord_id, :image_path)";
         
@@ -62,7 +64,7 @@ class LandlordHandler
         $stmt->bindParam(':content', $content);
         $stmt->bindParam(':landlord_id', $landlord_id);
         $stmt->bindParam(':image_path', $imagePath);
-
+    
         if ($stmt->execute()) {
             return $this->sendSuccessResponse('Announcement created successfully', 201);
         } else {
@@ -83,12 +85,12 @@ class LandlordHandler
         }
     
         // Set the target file path and get file extension
-        $targetFile = $targetDir . basename($file["name"]);
-        $imageFileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+        $fileExtension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
         $allowedTypes = array("jpg", "png", "jpeg", "gif");
     
         // Check file type
-        if (in_array($imageFileType, $allowedTypes)) {
+        if (in_array($fileExtension, $allowedTypes)) {
+            $targetFile = $targetDir . uniqid() . '.' . $fileExtension;
             // Move the file to the target directory
             if (move_uploaded_file($file["tmp_name"], $targetFile)) {
                 // Prepare SQL to insert the lease record
@@ -96,10 +98,10 @@ class LandlordHandler
                 try {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([
-                        $file["name"],  // imgName
-                        $targetFile,    // img (path to file)
-                        $tenantId,      // tenant_id
-                        $room           // room
+                        basename($targetFile),  // imgName
+                        $targetFile,            // img (path to file)
+                        $tenantId,              // tenant_id
+                        $room                   // room
                     ]);
                 } catch (\PDOException $e) {
                     $errmsg = "Error inserting lease record: " . $e->getMessage();
@@ -386,7 +388,7 @@ class LandlordHandler
     public function addImage($file) {
         $code = 0;
         $errmsg = "";
-
+    
         // File upload logic
         $targetDir = "uploads/";
         
@@ -394,21 +396,23 @@ class LandlordHandler
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0777, true);
         }
-
-        $targetFile = $targetDir . basename($file["name"]);
-        $imageFileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+    
+        $fileExtension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
         $allowedTypes = array("jpg", "png", "jpeg", "gif");
-
-        if (in_array($imageFileType, $allowedTypes)) {
+    
+        if (in_array($fileExtension, $allowedTypes)) {
+            $targetFile = $targetDir . uniqid() . '.' . $fileExtension;
             if (move_uploaded_file($file["tmp_name"], $targetFile)) {
                 $sql = "INSERT INTO images (imgName, img) VALUES (?, ?)";
                 try {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([
-                        $file["name"],
+                        basename($targetFile),
                         $targetFile
                     ]);
                 } catch (\PDOException $e) {
+                    $errmsg = "Error inserting image record: " . $e->getMessage();
+                    $code = 500;
                 }
             } else {
                 $errmsg = "Failed to move uploaded file.";
@@ -418,7 +422,11 @@ class LandlordHandler
             $errmsg = "Unsupported file type.";
             $code = 400;
         }
-
+    
+        return [
+            'code' => $code,
+            'errmsg' => $errmsg
+        ];
     }
 
 
@@ -454,7 +462,8 @@ class LandlordHandler
         $end_date = $data->end_date ?? null;
         $description = $data->description ?? null;
         $expenses = $data->expenses ?? null;
-
+        $status = $data->status ?? 'pending'; // Default status
+    
         // Validate required fields
         $fields = [
             'apartment_id' => 'Apartment ID is required.',
@@ -462,13 +471,13 @@ class LandlordHandler
             'start_date' => 'Start date is required.',
             'description' => 'Description is required.',
         ];
-
+    
         foreach ($fields as $field => $errorMessage) {
             if (empty($$field)) {
                 return $this->sendErrorResponse($errorMessage, 400);
             }
         }
-
+    
         // Validate date format for start_date and end_date
         $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
         if (!preg_match($datePattern, $start_date)) {
@@ -477,10 +486,10 @@ class LandlordHandler
         if ($end_date && !preg_match($datePattern, $end_date)) {
             return $this->sendErrorResponse("Invalid end date format. Use YYYY-MM-DD.", 400);
         }
-
+    
         // Insert the maintenance record into the database
-        $query = "INSERT INTO maintenance (apartment_id, landlord_id, start_date, end_date, description, expenses)
-                  VALUES (:apartment_id, :landlord_id, :start_date, :end_date, :description, :expenses)";
+        $query = "INSERT INTO maintenance (apartment_id, landlord_id, start_date, end_date, description, expenses, status)
+                  VALUES (:apartment_id, :landlord_id, :start_date, :end_date, :description, :expenses, :status)";
         
         try {
             $stmt = $this->conn->prepare($query);
@@ -490,11 +499,74 @@ class LandlordHandler
             $stmt->bindParam(':end_date', $end_date);
             $stmt->bindParam(':description', $description);
             $stmt->bindParam(':expenses', $expenses);
-
+            $stmt->bindParam(':status', $status);
+    
             if ($stmt->execute()) {
                 return $this->sendSuccessResponse("Maintenance task added successfully.", 201);
             } else {
                 return $this->sendErrorResponse("Failed to add maintenance task.", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
+
+    public function updateMaintenance($data) {
+        // Extract properties from the $data object
+        $maintenance_id = $data->maintenance_id ?? null;
+        $apartment_id = $data->apartment_id ?? null;
+        $landlord_id = $data->landlord_id ?? null;
+        $start_date = $data->start_date ?? null;
+        $end_date = $data->end_date ?? null;
+        $description = $data->description ?? null;
+        $expenses = $data->expenses ?? null;
+        $status = $data->status ?? null;
+    
+        // Validate required fields
+        $fields = [
+            'maintenance_id' => 'Maintenance ID is required.',
+            'apartment_id' => 'Apartment ID is required.',
+            'landlord_id' => 'Landlord ID is required.',
+            'start_date' => 'Start date is required.',
+            'description' => 'Description is required.',
+        ];
+    
+        foreach ($fields as $field => $errorMessage) {
+            if (empty($$field)) {
+                return $this->sendErrorResponse($errorMessage, 400);
+            }
+        }
+    
+        // Validate date format for start_date and end_date
+        $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
+        if (!preg_match($datePattern, $start_date)) {
+            return $this->sendErrorResponse("Invalid start date format. Use YYYY-MM-DD.", 400);
+        }
+        if ($end_date && !preg_match($datePattern, $end_date)) {
+            return $this->sendErrorResponse("Invalid end date format. Use YYYY-MM-DD.", 400);
+        }
+    
+        // Update the maintenance record in the database
+        $query = "UPDATE maintenance 
+                  SET apartment_id = :apartment_id, landlord_id = :landlord_id, start_date = :start_date, 
+                      end_date = :end_date, description = :description, expenses = :expenses, status = :status
+                  WHERE maintenance_id = :maintenance_id";
+        
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':maintenance_id', $maintenance_id);
+            $stmt->bindParam(':apartment_id', $apartment_id);
+            $stmt->bindParam(':landlord_id', $landlord_id);
+            $stmt->bindParam(':start_date', $start_date);
+            $stmt->bindParam(':end_date', $end_date);
+            $stmt->bindParam(':description', $description);
+            $stmt->bindParam(':expenses', $expenses);
+            $stmt->bindParam(':status', $status);
+    
+            if ($stmt->execute()) {
+                return $this->sendSuccessResponse("Maintenance task updated successfully.", 200);
+            } else {
+                return $this->sendErrorResponse("Failed to update maintenance task.", 500);
             }
         } catch (PDOException $e) {
             return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
@@ -519,6 +591,78 @@ class LandlordHandler
         }
     }
     
+
+    public function updateConcern($data) {
+        // Extract properties from the $data object
+        $concern_id = $data->concern_id ?? null;
+        $title = $data->title ?? '';
+        $content = $data->content ?? '';
+        $tenant_id = $data->tenant_id ?? '';
+        $status = $data->status ?? 'pending'; // Default status
+    
+        // Validate required fields
+        $fields = [
+            'concern_id' => 'Concern ID is required.',
+            'title' => 'Concern title cannot be empty',
+            'content' => 'Concern content cannot be empty',
+        ];
+    
+        foreach ($fields as $field => $errorMessage) {
+            if (empty($$field)) {
+                return $this->sendErrorResponse($errorMessage, 400);
+            }
+        }
+    
+        // Handle image upload (from $_FILES)
+        $imagePath = null;
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == 0) {
+            $image = $_FILES['attachment']; // Accessing file from $_FILES superglobal
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+            $fileExtension = strtolower(pathinfo($image['name'], PATHINFO_EXTENSION));
+    
+            if (!in_array($fileExtension, $allowedExtensions)) {
+                return $this->sendErrorResponse('Invalid image format', 400);
+            }
+    
+            // Create uploads directory if it doesn't exist
+            $uploadDir = __DIR__ . '/../uploads/concerns/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+    
+            // Generate a unique file path
+            $imagePath = $uploadDir . uniqid() . '.' . $fileExtension;
+            if (!move_uploaded_file($image['tmp_name'], $imagePath)) {
+                return $this->sendErrorResponse('Failed to upload image', 500);
+            }
+    
+            // Store relative image path in the database
+            $imagePath = 'uploads/concerns/' . basename($imagePath);
+        }
+    
+        // Update the concern record in the database
+        $query = "UPDATE concerns 
+                  SET title = :title, content = :content, tenant_id = :tenant_id, status = :status, image_path = COALESCE(:image_path, image_path)
+                  WHERE concern_id = :concern_id";
+        
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':concern_id', $concern_id);
+            $stmt->bindParam(':title', $title);
+            $stmt->bindParam(':content', $content);
+            $stmt->bindParam(':tenant_id', $tenant_id);
+            $stmt->bindParam(':status', $status);
+            $stmt->bindParam(':image_path', $imagePath);
+    
+            if ($stmt->execute()) {
+                return $this->sendSuccessResponse("Concern updated successfully.", 200);
+            } else {
+                return $this->sendErrorResponse("Failed to update concern.", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
     
     private function sendErrorResponse($message, $statusCode) {
         http_response_code($statusCode);
