@@ -270,13 +270,17 @@ class LandlordHandler
             $dueDate->modify('+1 month');
             $formattedDueDate = $dueDate->format('Y-m-d');
     
-            $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id, status = 'pending', room = :room, rent = :rent, due_date = :due_date WHERE tenant_id = :tenant_id";
+            // Add the assigned_date field with the current timestamp
+            $assignedDate = (new DateTime())->format('Y-m-d H:i:s');
+    
+            $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id, status = 'pending', room = :room, rent = :rent, due_date = :due_date, assigned_date = :assigned_date WHERE tenant_id = :tenant_id";
             $stmtAssignApartmentToTenant = $this->conn->prepare($queryAssignApartmentToTenant);
             $stmtAssignApartmentToTenant->bindParam(':apartment_id', $apartment_id);
             $stmtAssignApartmentToTenant->bindParam(':tenant_id', $tenant_id);
             $stmtAssignApartmentToTenant->bindParam(':room', $room);
             $stmtAssignApartmentToTenant->bindParam(':rent', $rent);
             $stmtAssignApartmentToTenant->bindParam(':due_date', $formattedDueDate);
+            $stmtAssignApartmentToTenant->bindParam(':assigned_date', $assignedDate);
             $stmtAssignApartmentToTenant->execute();
     
             // Commit the transaction
@@ -329,8 +333,8 @@ class LandlordHandler
                 $stmtUpdateApartment = $this->conn->prepare($queryUpdateApartment);
                 $stmtUpdateApartment->bindParam(':apartment_id', $apartment_id);
     
-                // Update the tenant's record
-                $queryUpdateTenant = "UPDATE tenants SET apartment_id = NULL, status = 'inactive', rent = NULL, room = NULL, due_date = NULL WHERE tenant_id = :tenant_id";
+                // Update the tenant's record, including removing the assigned_date
+                $queryUpdateTenant = "UPDATE tenants SET apartment_id = NULL, status = 'inactive', rent = NULL, room = NULL, due_date = NULL, assigned_date = NULL WHERE tenant_id = :tenant_id";
                 $stmtUpdateTenant = $this->conn->prepare($queryUpdateTenant);
                 $stmtUpdateTenant->bindParam(':tenant_id', $current_tenant_id);
     
@@ -351,6 +355,7 @@ class LandlordHandler
             return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
         }
     }
+    
     
     public function getLeases() {
         try {
