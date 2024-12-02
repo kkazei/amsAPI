@@ -93,34 +93,44 @@ class LandlordHandler
             $targetFile = $targetDir . uniqid() . '.' . $fileExtension;
             // Move the file to the target directory
             if (move_uploaded_file($file["tmp_name"], $targetFile)) {
-                // Prepare SQL to insert the lease record
-                $sql = "INSERT INTO leases (imgName, img, tenant_id, room) VALUES (?, ?, ?, ?)";
                 try {
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([
-                        basename($targetFile),  // imgName
-                        $targetFile,            // img (path to file)
-                        $tenantId,              // tenant_id
-                        $room                   // room
-                    ]);
+                    // Fetch tenant_fullname based on tenant_id
+                    $sqlFetch = "SELECT tenant_fullname FROM tenants WHERE tenant_id = ?";
+                    $stmtFetch = $this->pdo->prepare($sqlFetch);
+                    $stmtFetch->execute([$tenantId]);
+                    $tenant = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+    
+                    if ($tenant) {
+                        $tenantFullname = $tenant['tenant_fullname'];
+    
+                        // Prepare SQL to insert the lease record
+                        $sqlInsert = "INSERT INTO leases (imgName, img, tenant_id, room, tenant_fullname) VALUES (?, ?, ?, ?, ?)";
+                        $stmtInsert = $this->pdo->prepare($sqlInsert);
+                        $stmtInsert->execute([
+                            basename($targetFile),  // imgName
+                            $targetFile,            // img (path to file)
+                            $tenantId,              // tenant_id
+                            $room,                  // room
+                            $tenantFullname         // tenant_fullname
+                        ]);
+                    } else {
+                        $errmsg = "Tenant not found.";
+                        $code = 404;
+                    }
                 } catch (\PDOException $e) {
                     $errmsg = "Error inserting lease record: " . $e->getMessage();
                     $code = 500;
                 }
             } else {
-                $errmsg = "Failed to move uploaded file.";
-                $code = 500;
+                $errmsg = "Failed to upload the file.";
+                $code = 400;
             }
         } else {
-            $errmsg = "Unsupported file type.";
+            $errmsg = "Invalid file type.";
             $code = 400;
         }
-    
-        return [
-            'code' => $code,
-            'errmsg' => $errmsg
-        ];
     }
+    
     
 
     
