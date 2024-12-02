@@ -338,13 +338,18 @@ class LandlordHandler
                 $stmtUpdateTenant = $this->conn->prepare($queryUpdateTenant);
                 $stmtUpdateTenant->bindParam(':tenant_id', $current_tenant_id);
     
-                // Execute both updates
-                if ($stmtUpdateApartment->execute() && $stmtUpdateTenant->execute()) {
+                // Remove the leases data for the tenant
+                $queryDeleteLeases = "DELETE FROM leases WHERE tenant_id = :tenant_id";
+                $stmtDeleteLeases = $this->conn->prepare($queryDeleteLeases);
+                $stmtDeleteLeases->bindParam(':tenant_id', $current_tenant_id);
+    
+                // Execute all updates
+                if ($stmtUpdateApartment->execute() && $stmtUpdateTenant->execute() && $stmtDeleteLeases->execute()) {
                     $this->conn->commit();
-                    return $this->sendSuccessResponse("Tenant removed from apartment successfully.", 200);
+                    return $this->sendSuccessResponse("Tenant and associated leases removed from apartment successfully.", 200);
                 } else {
                     $this->conn->rollBack();
-                    return $this->sendErrorResponse("Failed to remove tenant from apartment.", 500);
+                    return $this->sendErrorResponse("Failed to remove tenant and associated leases from apartment.", 500);
                 }
             } else {
                 $this->conn->rollBack();
