@@ -400,13 +400,13 @@ class LandlordHandler
         }
     }
 
-    public function addImage($file) {
+    public function addImage($file, $description, $landlord_id) {
         $code = 0;
         $errmsg = "";
     
         // File upload logic
         $targetDir = "uploads/";
-        
+    
         // Check if the directory exists, if not create it
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0777, true);
@@ -418,12 +418,14 @@ class LandlordHandler
         if (in_array($fileExtension, $allowedTypes)) {
             $targetFile = $targetDir . uniqid() . '.' . $fileExtension;
             if (move_uploaded_file($file["tmp_name"], $targetFile)) {
-                $sql = "INSERT INTO images (imgName, img) VALUES (?, ?)";
+                $sql = "INSERT INTO images (imgName, img, description, landlord_id) VALUES (?, ?, ?, ?)";
                 try {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([
                         basename($targetFile),
-                        $targetFile
+                        $targetFile,
+                        $description,
+                        $landlord_id
                     ]);
                 } catch (\PDOException $e) {
                     $errmsg = "Error inserting image record: " . $e->getMessage();
@@ -443,6 +445,7 @@ class LandlordHandler
             'errmsg' => $errmsg
         ];
     }
+    
 
 
     public function getImage() {

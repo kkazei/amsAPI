@@ -147,15 +147,23 @@
                                 http_response_code(405);
                             }
                             break;
-                    case 'uploadImage':
+                            case 'uploadImage':
                                 if (isset($_FILES['image'])) {
+                                    // Check if 'description' and 'landlord_id' are passed
+                                    $description = isset($_POST['description']) ? $_POST['description'] : '';
+                                    $landlord_id = isset($_POST['landlord_id']) ? $_POST['landlord_id'] : null;
+                            
+                                    // Call the addImage method, passing the description and landlord_id
+                                    $result = $landlord->addImage($_FILES['image'], $description, $landlord_id);
+                            
                                     // Return JSON-encoded data for adding image
-                                    echo json_encode($landlord->addImage($_FILES['image']));
+                                    echo json_encode($result);
                                 } else {
                                     echo json_encode(['error' => 'No file uploaded.']);
                                     http_response_code(400);
                                 }
                                 break;
+                            
                         
                     default:
                         echo "This is forbidden";
