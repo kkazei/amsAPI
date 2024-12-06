@@ -234,14 +234,24 @@
                                 }
                                 break;
                                                 
-            case 'DELETE':
-                switch ($request[0]) {
-                  
-            default:
-                echo "Method not available";
-                http_response_code(404);
-                break;
-        }
-    }
+                                case 'DELETE':
+                                    $data = json_decode(file_get_contents("php://input"));
+                                    switch ($request[0]) {
+                                        case 'deleteTenant':
+                                            if (isset($data->tenantId)) {
+                                                echo json_encode($tenant->deleteTenant($data->tenantId));
+                                            } else {
+                                                echo json_encode(['error' => 'Tenant ID not provided.']);
+                                                http_response_code(400);
+                                            }
+                                            break;
+                                        // Add other DELETE cases here
+                                        default:
+                                            echo "This is forbidden";
+                                            http_response_code(403);
+                                            break;
+                                    }
+                                    break;
+                                }
         
 ?>

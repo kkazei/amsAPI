@@ -197,6 +197,18 @@ class TenantHandler{
             return $this->sendErrorResponse("Failed to retrieve posts", 500);
         }
     }
+
+    public function deleteTenant($tenantId) {
+        $query = "DELETE FROM tenants WHERE tenant_id = :tenantId";
+        $stmt = $this->pdo->prepare($query);
+        $stmt->bindParam(':tenantId', $tenantId);
+        if ($stmt->execute()) {
+            return ['status' => 'success', 'message' => 'Tenant deleted successfully'];
+        } else {
+            return ['status' => 'error', 'message' => 'Failed to delete tenant'];
+        }
+    }
+    
     
 
     private function sendErrorResponse($message, $statusCode) {
