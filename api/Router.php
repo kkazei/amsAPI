@@ -31,7 +31,6 @@
     require_once('./config/database.php');
     require_once( './services/login.php');
     require_once('./services/register.php');
-    require_once('./services/AdminMailer.php');
     require_once('./services/LandlordHandler.php');
     require_once('./services/TenantHandler.php');
     require_once('./services/AnalyticsHandler.php');
@@ -45,7 +44,6 @@
     
     $register = new RegisterUser($pdo);
     $login = new Login($pdo);
-    $mail = new Mail($pdo);
     $landlord = new LandlordHandler($pdo);
     $tenant = new TenantHandler($pdo);
     $analytics = new AnalyticsHandler($pdo);
@@ -95,12 +93,6 @@
                     case 'register':
                         echo json_encode($register->registerUser($data));
                         break;
-                    case 'mail':
-                            echo json_encode($mail->sendEmail($data));
-                            break;
-                    case 'schedule':
-                            echo json_encode($mail->scheduledSend($data));
-                            break;
                     case 'createMaintenance':
                         echo json_encode($landlord->addMaintenance($data));
                         break;
