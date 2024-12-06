@@ -69,9 +69,19 @@
         case 'POST':
             $data = json_decode(file_get_contents("php://input"));
             switch ($request[0]) {
-                case 'login':
+                case 'loginLandlord':
                     if (isset($data->email) && isset($data->password)) {
-                        echo json_encode($login->loginUser($data->email, $data->password));
+                        echo json_encode($login->loginUserAsLandlord($data->email, $data->password));
+                    } else {
+                        echo json_encode([
+                            'status' => 400,
+                            'message' => 'Invalid input data'
+                        ]);
+                    }
+                    break;
+                case 'loginTenant':
+                    if (isset($data->email) && isset($data->password)) {
+                        echo json_encode($login->loginUserAsTenant($data->email, $data->password));
                     } else {
                         echo json_encode([
                             'status' => 400,
