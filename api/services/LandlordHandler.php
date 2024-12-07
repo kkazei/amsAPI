@@ -205,74 +205,73 @@ class LandlordHandler
 
     public function assignTenantToApartment() {
         $data = json_decode(file_get_contents("php://input"));
-    
+      
         // Extract the data from the incoming JSON
         $apartment_id = $data->apartment_id ?? null;
         $tenant_id = $data->tenant_id ?? null;
-    
+      
         // Validate input
         if (empty($apartment_id) || empty($tenant_id)) {
             return $this->sendErrorResponse("Apartment ID and Tenant ID are required.", 400);
         }
-    
-        // Check if the new apartment exists and whether it already has a tenant assigned
+      
+        // Check if the apartment exists and whether it already has a tenant assigned
         $queryCheckApartment = "SELECT tenant_id, room, rent FROM apartments WHERE apartment_id = :apartment_id";
         $stmtCheckApartment = $this->conn->prepare($queryCheckApartment);
         $stmtCheckApartment->bindParam(':apartment_id', $apartment_id);
-    
+      
         if (!$stmtCheckApartment->execute() || $stmtCheckApartment->rowCount() == 0) {
             return $this->sendErrorResponse("Apartment not found.", 404);
         }
-    
+      
         // Fetch new apartment details
         $apartment = $stmtCheckApartment->fetch(PDO::FETCH_ASSOC);
         if (!empty($apartment['tenant_id'])) {
             return $this->sendErrorResponse("This apartment already has a tenant assigned.", 400);
         }
-    
+      
         $room = $apartment['room'];
         $rent = $apartment['rent'];
-    
+      
         // Check if the tenant exists and get their current apartment
-        $queryCheckTenant = "SELECT apartment_id FROM tenants WHERE tenant_id = :tenant_id";
+        $queryCheckTenant = "SELECT apartment_id, tenant_fullname FROM tenants WHERE tenant_id = :tenant_id";
         $stmtCheckTenant = $this->conn->prepare($queryCheckTenant);
         $stmtCheckTenant->bindParam(':tenant_id', $tenant_id);
-    
+      
         if (!$stmtCheckTenant->execute() || $stmtCheckTenant->rowCount() == 0) {
             return $this->sendErrorResponse("Tenant not found.", 404);
         }
-    
-        // Fetch current apartment ID of the tenant
+      
+        // Fetch current apartment ID and fullname of the tenant
         $tenant = $stmtCheckTenant->fetch(PDO::FETCH_ASSOC);
         $currentApartmentId = $tenant['apartment_id'];
-    
+        $tenantFullname = $tenant['tenant_fullname'];
+      
+        // Check if the tenant is already assigned to an apartment
+        if (!empty($currentApartmentId)) {
+            return $this->sendErrorResponse("This tenant is already assigned to an apartment.", 400);
+        }
+      
         // Start a transaction to ensure data integrity
         try {
             $this->conn->beginTransaction();
-    
-            // Clear the tenant_id from the current apartment if it exists
-            if (!empty($currentApartmentId)) {
-                $queryClearCurrentApartment = "UPDATE apartments SET tenant_id = NULL WHERE apartment_id = :current_apartment_id";
-                $stmtClearCurrentApartment = $this->conn->prepare($queryClearCurrentApartment);
-                $stmtClearCurrentApartment->bindParam(':current_apartment_id', $currentApartmentId);
-                $stmtClearCurrentApartment->execute();
-            }
-    
+      
             // Assign tenant to the new apartment
-            $queryAssignTenantToApartment = "UPDATE apartments SET tenant_id = :tenant_id WHERE apartment_id = :apartment_id";
+            $queryAssignTenantToApartment = "UPDATE apartments SET tenant_id = :tenant_id, tenant_fullname = :tenant_fullname WHERE apartment_id = :apartment_id";
             $stmtAssignTenantToApartment = $this->conn->prepare($queryAssignTenantToApartment);
             $stmtAssignTenantToApartment->bindParam(':tenant_id', $tenant_id);
+            $stmtAssignTenantToApartment->bindParam(':tenant_fullname', $tenantFullname);
             $stmtAssignTenantToApartment->bindParam(':apartment_id', $apartment_id);
             $stmtAssignTenantToApartment->execute();
-    
+      
             // Update tenants table to reflect the new apartment and related details
             $dueDate = new DateTime();
             $dueDate->modify('+1 month');
             $formattedDueDate = $dueDate->format('Y-m-d');
-    
+      
             // Add the assigned_date field with the current timestamp
             $assignedDate = (new DateTime())->format('Y-m-d H:i:s');
-    
+      
             $queryAssignApartmentToTenant = "UPDATE tenants SET apartment_id = :apartment_id, status = 'pending', room = :room, rent = :rent, due_date = :due_date, assigned_date = :assigned_date WHERE tenant_id = :tenant_id";
             $stmtAssignApartmentToTenant = $this->conn->prepare($queryAssignApartmentToTenant);
             $stmtAssignApartmentToTenant->bindParam(':apartment_id', $apartment_id);
@@ -282,7 +281,7 @@ class LandlordHandler
             $stmtAssignApartmentToTenant->bindParam(':due_date', $formattedDueDate);
             $stmtAssignApartmentToTenant->bindParam(':assigned_date', $assignedDate);
             $stmtAssignApartmentToTenant->execute();
-    
+      
             // Commit the transaction
             $this->conn->commit();
             return $this->sendSuccessResponse("Tenant successfully assigned to the new apartment.", 200);
@@ -329,7 +328,7 @@ class LandlordHandler
                 }
     
                 // Remove the tenant from the apartment
-                $queryUpdateApartment = "UPDATE apartments SET tenant_id = NULL WHERE apartment_id = :apartment_id";
+                $queryUpdateApartment = "UPDATE apartments SET tenant_id = NULL, tenant_fullname = NULL WHERE apartment_id = :apartment_id";
                 $stmtUpdateApartment = $this->conn->prepare($queryUpdateApartment);
                 $stmtUpdateApartment->bindParam(':apartment_id', $apartment_id);
     
@@ -360,8 +359,7 @@ class LandlordHandler
             return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
         }
     }
-    
-    
+
     public function getLeases() {
         try {
             // Prepare SQL statement to fetch images
