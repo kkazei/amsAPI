@@ -751,6 +751,25 @@ class LandlordHandler
         }
     }
 
+    public function deleteMaintenance($maintenanceId) {
+        $query = "DELETE FROM maintenance WHERE maintenance_id = :maintenance_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':maintenance_id', $maintenanceId, PDO::PARAM_INT);
+        
+        try {
+            if ($stmt->execute()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Maintenance record deleted successfully'
+                ];
+            } else {
+                return $this->sendErrorResponse("Failed to delete maintenance record", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
+
     public function updateConcern($data) {
         // Extract properties from the $data object
         $concern_id = $data->concern_id ?? null;

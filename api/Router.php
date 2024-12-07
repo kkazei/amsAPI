@@ -284,6 +284,22 @@
                                                     http_response_code(400);
                                                 }
                                                 break;
+                                        case 'deleteInvoice':
+                                                    if (isset($data->invoice_id)) {
+                                                        echo json_encode($tenant->deleteInvoice($data->invoice_id));
+                                                    } else {
+                                                        echo json_encode(['error' => 'Invoice ID not provided.']);
+                                                        http_response_code(400);
+                                                    }
+                                                    break;
+                                        case 'deleteMaintenance':
+                                                        if (isset($data->maintenance_id)) {
+                                                            echo json_encode($landlord->deleteMaintenance($data->maintenance_id));
+                                                        } else {
+                                                            echo json_encode(['error' => 'Maintenance ID not provided.']);
+                                                            http_response_code(400);
+                                                        }
+                                                        break;
                                         // Add other DELETE cases here
                                         default:
                                             echo "This is forbidden";

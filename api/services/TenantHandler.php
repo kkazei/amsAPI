@@ -271,6 +271,25 @@ class TenantHandler{
             return ['status' => 'error', 'message' => 'Failed to delete tenant'];
         }
     }
+
+    public function deleteInvoice($invoiceId) {
+        $query = "DELETE FROM invoice WHERE invoice_id = :invoice_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':invoice_id', $invoiceId, PDO::PARAM_INT);
+        
+        try {
+            if ($stmt->execute()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Invoice deleted successfully'
+                ];
+            } else {
+                return $this->sendErrorResponse("Failed to delete invoice", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
     
     
 
