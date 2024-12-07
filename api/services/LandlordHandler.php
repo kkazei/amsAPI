@@ -670,7 +670,7 @@ class LandlordHandler
     }
 
     public function getMaintenance() {
-        $query = "SELECT * FROM maintenance";
+        $query = "SELECT * FROM maintenance WHERE isVisible = 1";
         
         try {
             $stmt = $this->conn->prepare($query);
@@ -687,6 +687,69 @@ class LandlordHandler
         }
     }
     
+    public function getArchivedMaintenance() {
+        $query = "SELECT * FROM maintenance WHERE isVisible = 0";
+        
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
+            $archivedMaintenanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return [
+                'status' => 'success',
+                'data' => $archivedMaintenanceRecords
+            ];
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
+
+    public function archiveMaintenance($maintenanceId) {
+        try {
+            // Prepare the SQL query to update the isVisible field to 0
+            $query = "UPDATE maintenance SET isVisible = 0 WHERE maintenance_id = :maintenance_id";
+            $stmt = $this->conn->prepare($query);
+            
+            // Bind the maintenance ID parameter
+            $stmt->bindParam(':maintenance_id', $maintenanceId, PDO::PARAM_INT);
+            
+            // Execute the query
+            if ($stmt->execute()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Maintenance record archived (isVisible = 0).'
+                ];
+            } else {
+                return $this->sendErrorResponse("Failed to archive maintenance record", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
+    
+    public function restoreMaintenance($maintenanceId) {
+        try {
+            // Prepare the SQL query to update the isVisible field to 1
+            $query = "UPDATE maintenance SET isVisible = 1 WHERE maintenance_id = :maintenance_id";
+            $stmt = $this->conn->prepare($query);
+            
+            // Bind the maintenance ID parameter
+            $stmt->bindParam(':maintenance_id', $maintenanceId, PDO::PARAM_INT);
+            
+            // Execute the query
+            if ($stmt->execute()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Maintenance record restored (isVisible = 1).'
+                ];
+            } else {
+                return $this->sendErrorResponse("Failed to restore maintenance record", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
 
     public function updateConcern($data) {
         // Extract properties from the $data object

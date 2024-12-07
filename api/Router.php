@@ -125,31 +125,20 @@
                                 http_response_code(400);
                             }
                             break;
-                        
                     case 'payInvoice':
-                        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                            $tenantId = $_POST['tenantId'];
-                            $amount = $_POST['amount'];
-                            $referenceNumber = $_POST['referenceNumber'];
-                            $proofOfPaymentFile = $_FILES['proofOfPayment'] ?? null;
-                            $response = $tenant->payInvoice($tenantId, $amount, $referenceNumber, $proofOfPaymentFile);
-                            echo json_encode($response);
-                        } else {
-                            echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
-                            http_response_code(405);
-                        }
-                        break;
+                                $tenantId = $_POST['tenantId'];
+                                $amount = $_POST['amount'];
+                                $referenceNumber = $_POST['referenceNumber'];
+                                $proofOfPaymentFile = $_FILES['proofOfPayment'] ?? null;
+                                $response = $tenant->payInvoice($tenantId, $amount, $referenceNumber, $proofOfPaymentFile);
+                                echo json_encode($response);
+                                break;
                     case 'concern':
-                            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $data = $_POST; // Use $_POST to get form data
                                 $data['image'] = $_FILES['image'] ?? null; // Add the uploaded file to the data array
                                 echo json_encode($tenant->createConcern($data));
-                            } else {
-                                echo "Method not allowed";
-                                http_response_code(405);
-                            }
-                            break;
-                            case 'uploadImage':
+                                break;
+                    case 'uploadImage':
                                 if (isset($_FILES['image'])) {
                                     // Check if 'description' and 'landlord_id' are passed
                                     $description = isset($_POST['description']) ? $_POST['description'] : '';
@@ -181,6 +170,22 @@
                                             http_response_code(400);
                                         }
                                         break;
+                    case 'archiveMaintenance':
+                                            if (isset($data->maintenance_id)) {
+                                                echo json_encode($landlord->archiveMaintenance($data->maintenance_id));
+                                            } else {
+                                                echo json_encode(['status' => 'error', 'message' => 'Maintenance ID not provided']);
+                                                http_response_code(400);
+                                            }
+                                            break;
+                    case 'restoreMaintenance':
+                                            if (isset($data->maintenance_id)) {
+                                                echo json_encode($landlord->restoreMaintenance($data->maintenance_id));
+                                            } else {
+                                                echo json_encode(['status' => 'error', 'message' => 'Maintenance ID not provided']);
+                                                http_response_code(400);
+                                            }
+                                            break;
                                     
                                 
                             
@@ -216,10 +221,12 @@
                                 case 'getArchivedPayments':
                                             echo json_encode($tenant->getArchivedPayments());
                                             break;
-                                        
                                 case 'getMaintenance':
                                             echo json_encode($landlord->getMaintenance());
                                             break;
+                                case 'getArchivedMaintenance':
+                                                echo json_encode($landlord->getArchivedMaintenance());
+                                                break;
                                 case 'getConcerns':
                                             echo json_encode($tenant->getConcern());
                                             break;
