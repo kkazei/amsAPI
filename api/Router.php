@@ -165,6 +165,24 @@
                                     http_response_code(400);
                                 }
                                 break;
+                    case 'updatePaymentVisibility':
+                                    if (isset($data->invoice_id)) {
+                                        echo json_encode($tenant->updatePaymentVisibility($data->invoice_id));
+                                    } else {
+                                        echo json_encode(['status' => 'error', 'message' => 'Invoice ID not provided']);
+                                        http_response_code(400);
+                                    }
+                                    break;
+                    case 'restorePaymentVisibility':
+                                        if (isset($data->invoice_id)) {
+                                            echo json_encode($tenant->restorePaymentVisibility($data->invoice_id));
+                                        } else {
+                                            echo json_encode(['status' => 'error', 'message' => 'Invoice ID not provided']);
+                                            http_response_code(400);
+                                        }
+                                        break;
+                                    
+                                
                             
                         
                     default:
@@ -193,8 +211,12 @@
                                     echo json_encode($landlord->getLeases());
                                     break;
                                 case 'getPaymentDetails':
-                                        echo json_encode($tenant->getPaymemtDetails());
+                                        echo json_encode($tenant->getPaymentDetails());
                                         break;
+                                case 'getArchivedPayments':
+                                            echo json_encode($tenant->getArchivedPayments());
+                                            break;
+                                        
                                 case 'getMaintenance':
                                             echo json_encode($landlord->getMaintenance());
                                             break;

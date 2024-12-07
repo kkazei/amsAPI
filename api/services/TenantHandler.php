@@ -183,20 +183,83 @@ class TenantHandler{
     }
     
     
-    public function getPaymemtDetails() {
-        // Prepare the SQL query to get posts data
-        $query = "SELECT * FROM invoice";
-    
+    public function getPaymentDetails() {
+        // Prepare the SQL query to get invoice data where isVisible = 1
+        $query = "SELECT * FROM invoice WHERE isVisible = 1";
+        
         // Execute the query
         $stmt = $this->conn->prepare($query);
-    
+        
         if ($stmt->execute()) {
-            $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $posts;
+            $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $payments;
         } else {
-            return $this->sendErrorResponse("Failed to retrieve posts", 500);
+            return $this->sendErrorResponse("Failed to retrieve payment details", 500);
         }
     }
+
+    public function getArchivedPayments() {
+        // Prepare the SQL query to get invoice data where isVisible = 1
+        $query = "SELECT * FROM invoice WHERE isVisible = 0";
+        
+        // Execute the query
+        $stmt = $this->conn->prepare($query);
+        
+        if ($stmt->execute()) {
+            $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $payments;
+        } else {
+            return $this->sendErrorResponse("Failed to retrieve payment details", 500);
+        }
+    }
+
+    public function updatePaymentVisibility($invoiceId) {
+        try {
+            // Prepare the SQL query to update the isVisible field
+            $query = "UPDATE invoice SET isVisible = 0 WHERE invoice_id = :invoice_id";
+            $stmt = $this->conn->prepare($query);
+            
+            // Bind the invoice ID parameter
+            $stmt->bindParam(':invoice_id', $invoiceId, PDO::PARAM_INT);
+            
+            // Execute the query
+            if ($stmt->execute()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Payment visibility updated to archived (isVisible = 0).'
+                ];
+            } else {
+                return $this->sendErrorResponse("Failed to update payment visibility", 500);
+            }
+        } catch (Exception $e) {
+            return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
+        }
+    }
+    
+    public function restorePaymentVisibility($invoiceId) {
+        try {
+            // Prepare the SQL query to update the isVisible field
+            $query = "UPDATE invoice SET isVisible = 1 WHERE invoice_id = :invoice_id";
+            $stmt = $this->conn->prepare($query);
+            
+            // Bind the invoice ID parameter
+            $stmt->bindParam(':invoice_id', $invoiceId, PDO::PARAM_INT);
+            
+            // Execute the query
+            if ($stmt->execute()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Payment visibility restored (isVisible = 1).'
+                ];
+            } else {
+                return $this->sendErrorResponse("Failed to restore payment visibility", 500);
+            }
+        } catch (Exception $e) {
+            return $this->sendErrorResponse("An error occurred: " . $e->getMessage(), 500);
+        }
+    }
+    
+    
 
     public function deleteTenant($tenantId) {
         $query = "DELETE FROM tenants WHERE tenant_id = :tenantId";
