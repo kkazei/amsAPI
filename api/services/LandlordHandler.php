@@ -407,6 +407,30 @@ class LandlordHandler
         $code = 0;
         $errmsg = "";
     
+        // Check if an image already exists for the landlord
+        $sqlCheck = "SELECT COUNT(*) FROM images WHERE landlord_id = ?";
+        try {
+            $stmtCheck = $this->pdo->prepare($sqlCheck);
+            $stmtCheck->execute([$landlord_id]);
+            $imageCount = $stmtCheck->fetchColumn();
+    
+            if ($imageCount > 0) {
+                $errmsg = "An image already exists for this landlord.";
+                $code = 400;
+                return [
+                    'code' => $code,
+                    'errmsg' => $errmsg
+                ];
+            }
+        } catch (\PDOException $e) {
+            $errmsg = "Error checking existing image: " . $e->getMessage();
+            $code = 500;
+            return [
+                'code' => $code,
+                'errmsg' => $errmsg
+            ];
+        }
+    
         // File upload logic
         $targetDir = "uploads/";
     
@@ -441,6 +465,57 @@ class LandlordHandler
         } else {
             $errmsg = "Unsupported file type.";
             $code = 400;
+        }
+    
+        return [
+            'code' => $code,
+            'errmsg' => $errmsg
+        ];
+    }
+
+    public function deleteImage($landlord_id) {
+        $code = 0;
+        $errmsg = "";
+    
+        // Check if an image exists for the landlord
+        $sqlCheck = "SELECT img FROM images WHERE landlord_id = ?";
+        try {
+            $stmtCheck = $this->pdo->prepare($sqlCheck);
+            $stmtCheck->execute([$landlord_id]);
+            $image = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+    
+            if (!$image) {
+                $errmsg = "No image found for this landlord.";
+                $code = 404;
+                return [
+                    'code' => $code,
+                    'errmsg' => $errmsg
+                ];
+            }
+        } catch (\PDOException $e) {
+            $errmsg = "Error checking existing image: " . $e->getMessage();
+            $code = 500;
+            return [
+                'code' => $code,
+                'errmsg' => $errmsg
+            ];
+        }
+    
+        // Delete the image file from the server
+        if (file_exists($image['img'])) {
+            unlink($image['img']);
+        }
+    
+        // Delete the image record from the database
+        $sqlDelete = "DELETE FROM images WHERE landlord_id = ?";
+        try {
+            $stmtDelete = $this->pdo->prepare($sqlDelete);
+            $stmtDelete->execute([$landlord_id]);
+            $code = 200;
+            $errmsg = "Image successfully deleted.";
+        } catch (\PDOException $e) {
+            $errmsg = "Error deleting image record: " . $e->getMessage();
+            $code = 500;
         }
     
         return [

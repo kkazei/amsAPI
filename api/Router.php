@@ -247,6 +247,14 @@
                                                 http_response_code(400);
                                             }
                                             break;
+                                        case 'deleteImage':
+                                                if (isset($data->landlordId)) {
+                                                    echo json_encode($landlord->deleteImage($data->landlordId));
+                                                } else {
+                                                    echo json_encode(['code' => 400, 'errmsg' => 'Landlord ID is required']);
+                                                    http_response_code(400);
+                                                }
+                                                break;
                                         // Add other DELETE cases here
                                         default:
                                             echo "This is forbidden";
