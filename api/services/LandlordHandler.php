@@ -72,6 +72,25 @@ class LandlordHandler
         }
     }
 
+    public function deletePost($post_id) {
+        $query = "DELETE FROM posts WHERE post_id = :post_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':post_id', $post_id, PDO::PARAM_INT);
+        
+        try {
+            if ($stmt->execute()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Post deleted successfully'
+                ];
+            } else {
+                return $this->sendErrorResponse("Failed to delete post", 500);
+            }
+        } catch (PDOException $e) {
+            return $this->sendErrorResponse("Database error: " . $e->getMessage(), 500);
+        }
+    }
+
     public function addLease($file, $tenantId, $room) {
         $code = 0;
         $errmsg = "";

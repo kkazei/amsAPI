@@ -342,6 +342,14 @@
                                                             http_response_code(400);
                                                         }
                                                         break;
+                                        case 'deletePost':
+                                                            if (isset($data->post_id)) {
+                                                                echo json_encode($landlord->deletePost($data->post_id));
+                                                            } else {
+                                                                echo json_encode(['error' => 'Post ID not provided.']);
+                                                                http_response_code(400);
+                                                            }
+                                                            break;
                                         // Add other DELETE cases here
                                         default:
                                             echo "This is forbidden";
