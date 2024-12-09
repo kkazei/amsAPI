@@ -291,7 +291,29 @@ class TenantHandler{
         }
     }
     
+    public function importPayments($payments) {
+        try {
+            $this->conn->beginTransaction();
     
+            foreach ($payments as $payment) {
+                $query = "INSERT INTO invoice (tenant_fullname, room, amount, payment_date)
+                          VALUES (:tenant_fullname, :room, :amount, :payment_date)";
+                $stmt = $this->conn->prepare($query);
+                $stmt->bindValue(':tenant_fullname', $payment['tenant_fullname']);
+                $stmt->bindValue(':room', $payment['room']);
+                $stmt->bindValue(':amount', $payment['amount']);
+                $stmt->bindValue(':payment_date', $payment['payment_date']);
+                $stmt->execute();
+            }
+    
+            $this->conn->commit();
+            return ['status' => 'success', 'message' => 'Payments imported successfully'];
+        } catch (PDOException $e) {
+            $this->conn->rollBack();
+            return ['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()];
+        }
+    }
+
 
     private function sendErrorResponse($message, $statusCode) {
         http_response_code($statusCode);

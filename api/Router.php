@@ -186,7 +186,49 @@
                                                 http_response_code(400);
                                             }
                                             break;
-                                    
+                                            case 'importPayments':
+                                                if (isset($_FILES['file'])) {
+                                                    $file = $_FILES['file']['tmp_name'];
+                                                    $data = array_map('str_getcsv', file($file));
+                                                    
+                                                    // Process the CSV data
+                                                    $payments = [];
+                                                    foreach ($data as $index => $row) {
+                                                        if ($index === 0) continue; // Skip header row
+                                                        if (count($row) < 4) continue; // Skip rows with insufficient columns
+                                            
+                                                        // Validate and sanitize data
+                                                        $tenant_fullname = $row[0] ?? null;
+                                                        $room = $row[1] ?? null;
+                                                        $amount = $row[2] ?? null;
+                                                        $payment_date = $row[3] ?? null;
+                                            
+                                                        // Ensure the payment date is in the correct format
+                                                        if ($payment_date) {
+                                                            $payment_date = date('Y-m-d', strtotime($payment_date));
+                                                            if ($payment_date === '1970-01-01') {
+                                                                $payment_date = null; // Set to null if the date is invalid
+                                                            }
+                                                        } else {
+                                                            $payment_date = null; // Set to null if the date is empty
+                                                        }
+                                            
+                                                        $payments[] = [
+                                                            'tenant_fullname' => $tenant_fullname,
+                                                            'room' => $room,
+                                                            'amount' => $amount,
+                                                            'payment_date' => $payment_date
+                                                        ];
+                                                    }
+                                            
+                                                    echo json_encode($tenant->importPayments($payments));
+                                                } else {
+                                                    echo json_encode(['status' => 'error', 'message' => 'No file uploaded']);
+                                                    http_response_code(400);
+                                                }
+                                                break;
+                                        
+                    
                                 
                             
                         
