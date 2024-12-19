@@ -296,9 +296,10 @@ class TenantHandler{
             $this->conn->beginTransaction();
     
             foreach ($payments as $payment) {
-                $query = "INSERT INTO invoice (tenant_fullname, room, amount, payment_date)
-                          VALUES (:tenant_fullname, :room, :amount, :payment_date)";
+                $query = "INSERT INTO invoice (tenant_id, tenant_fullname, room, amount, payment_date)
+                          VALUES (:tenant_id, :tenant_fullname, :room, :amount, :payment_date)";
                 $stmt = $this->conn->prepare($query);
+                $stmt->bindValue(':tenant_id', $payment['tenant_id'], PDO::PARAM_INT);
                 $stmt->bindValue(':tenant_fullname', $payment['tenant_fullname']);
                 $stmt->bindValue(':room', $payment['room']);
                 $stmt->bindValue(':amount', $payment['amount']);

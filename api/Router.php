@@ -195,13 +195,14 @@
                                                     $payments = [];
                                                     foreach ($data as $index => $row) {
                                                         if ($index === 0) continue; // Skip header row
-                                                        if (count($row) < 4) continue; // Skip rows with insufficient columns
+                                                        if (count($row) < 5) continue; // Skip rows with insufficient columns
                                             
                                                         // Validate and sanitize data
-                                                        $tenant_fullname = $row[0] ?? null;
-                                                        $room = $row[1] ?? null;
-                                                        $amount = $row[2] ?? null;
-                                                        $payment_date = $row[3] ?? null;
+                                                        $tenant_id = $row[0] ?? null;
+                                                        $tenant_fullname = $row[1] ?? null;
+                                                        $room = $row[2] ?? null;
+                                                        $amount = $row[3] ?? null;
+                                                        $payment_date = $row[4] ?? null;
                                             
                                                         // Ensure the payment date is in the correct format
                                                         if ($payment_date) {
@@ -214,6 +215,7 @@
                                                         }
                                             
                                                         $payments[] = [
+                                                            'tenant_id' => $tenant_id,
                                                             'tenant_fullname' => $tenant_fullname,
                                                             'room' => $room,
                                                             'amount' => $amount,
